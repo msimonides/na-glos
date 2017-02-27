@@ -59,8 +59,16 @@ artyom.addCommands([
     {
       indexes: ['cofnij', 'poprzednia', 'poprzednia strona', 'wstecz'],
       action: prevSlide
+    },
+    {
+      indexes: ['dziękuję', 'dzięki'],
+      action: youreWelcome,
     }
 ]);
+
+function youreWelcome() {
+  artyom.say('Ależ proszę, nie ma za co');
+}
 
 artyom.initialize({
     lang: 'pl-PL',
