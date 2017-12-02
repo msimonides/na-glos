@@ -161,7 +161,7 @@ const CommandRecognizer = function(
     partial_result_callback(text);
     if (best_result.isFinal) {
       onRecognitionFinished(text);
-    } else {
+    } else if (text.length > 0) {
       timeout_id = window.setTimeout(
           function() { onRecognitionFinished(text); }, TIMEOUT_MS);
     }
@@ -220,6 +220,7 @@ if (window.webkitSpeechRecognition) {
     'forward': nextSlide,
     'next': nextSlide,
     'next page': nextSlide,
+    'next-page': nextSlide,
     'up': prevSlide,
     'go up': prevSlide,
     'go back': prevSlide,
