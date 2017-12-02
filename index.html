@@ -21,6 +21,69 @@ html, body {
   width: 100%;
   height: 100%;
 }
+
+#speech-recognition-indicator-container {
+  position: fixed;
+  bottom: 2%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+#speech-recognition-indicator {
+  width: auto;
+  padding: 0.3em 0.6em 0.4em;
+  background-color: #ccc;
+  border-radius: 0.8em;
+  font-size: 130%;
+  box-shadow: 0 2px 10px 1px rgba(0, 0, 0, 0.5);
+}
+
+#speech-recognition-indicator.hide {
+  opacity: 0;
+  transition: opacity 1s ease-in;
+  transition-delay: 0.3s;
+}
+
+#speech-recognition-indicator.match {
+  animation: approve 0.5s;
+  background-color: #8c8;
+}
+
+#speech-recognition-indicator.no-match {
+  animation: shake 0.5s;
+  transform: translate3d(0, 0, 0);
+  background-color: #e98;
+}
+
+#speech-recognition-indicator .mic {
+  border-right: solid 1px #999;
+  padding-right: 0.4em;
+  margin-right: 0.2em;
+}
+
+#speech-recognition-indicator .text {
+  display: inline-block;
+  font-family: sans-serif;
+  min-width: 9em;
+}
+
+@keyframes shake {
+  10% { transform: translate3d(-10px, 0, 0); }
+  30% { transform: translate3d(10px, 0, 0); }
+  50% { transform: translate3d(-7px, 0, 0); }
+  70% { transform: translate3d(5px, 0, 0); }
+  90% { transform: translate3d(-3px, 0, 0); }
+  100% { transform: translate3d(0, 0, 0); }
+}
+
+@keyframes approve {
+  20% { transform: scale(1.15); }
+  30% { transform: scale(0.9); }
+  50% { transform: scale(1.07); }
+  75% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
 </style>
 
 <script>
@@ -47,8 +110,6 @@ function scrollToElement(element) {
 }
 </script>
 <script src="slimScroller.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/annyang/2.4.0/annyang.min.js"></script>
-<script src="speechkitt.min.js"></script>
 </head>
 <body>
 <div class="slide-container">
@@ -66,29 +127,127 @@ function scrollToElement(element) {
   I to koniec. Więcej slajdów nie ma ;-P
 </div>
 </div>
+<div id="speech-recognition-indicator-container">
+  <div id="speech-recognition-indicator" class="hide">
+    <span class="mic">&#x1f3a4;</span>
+    <span class="text"></span>
+  </div>
+</div>
 </body>
 <script>
-if (annyang) {
-  const commands = {
-    'idź dalej': nextSlide,
-    'dalej': nextSlide,
-    'następna': nextSlide,
-    'następna strona': nextSlide,
-    'cofnij': prevSlide,
-    'poprzednia': prevSlide,
-    'poprzednia strona': prevSlide,
-    'wstecz': prevSlide
+
+const TIMEOUT_MS = 700;
+const CommandRecognizer = function(
+    recognition, command_list, command_callback, partial_result_callback) {
+
+  let timeout_id;
+
+  function onRecognitionResult(event) {
+    if (timeout_id)
+      window.clearTimeout(timeout_id);
+    var best_result;
+    for (var i = 0; i < event.results.length; ++i) {
+      const result = event.results[i];
+      if (result.isFinal || !best_result ||
+          best_result[0].confidence < result[0].confidence) {
+        best_result = result;
+        if (best_result.isFinal)
+          break;
+      }
+    }
+  
+    const text = best_result[0].transcript.toLowerCase().trim();
+    console.log('Got: ' + text + ' with cofidence: ' + best_result[0].confidence + ' isFinal: ' + best_result.isFinal);
+    partial_result_callback(text);
+    if (best_result.isFinal) {
+      onRecognitionFinished(text);
+    } else {
+      timeout_id = window.setTimeout(
+          function() { onRecognitionFinished(text); }, TIMEOUT_MS);
+    }
   }
 
-  annyang.addCommands(commands);
-  annyang.setLanguage('pl');
+  function onRecognitionFinished(text) {
+    const command_name = command_list.indexOf(text) > -1 ? text : null;
+    command_callback(command_name);
+    recognition.abort();
+  }
 
-  SpeechKITT.annyang();
-  SpeechKITT.setStylesheet('flat.css');
-  SpeechKITT.setInstructionsText('Powiedz komendę...');
-  SpeechKITT.displayRecognizedSentence(true);
-  SpeechKITT.vroom();
+  function onRecognitionEnd() {
+    if (timeout_id)
+      window.clearTimeout(timeout_id);
+    recognition.start();
+  }
 
-  annyang.start();
+  recognition.addEventListener('result', onRecognitionResult);
+  recognition.addEventListener('end', onRecognitionEnd);
+
+  return {};
+}
+
+function indicatorElement() {
+  return document.querySelector('#speech-recognition-indicator');
+}
+
+function showRecognizedText(recognizedText) {
+  const textElement = document.querySelector('#speech-recognition-indicator .text');
+  textElement.textContent = recognizedText;
+}
+
+function showMatch(isMatch) {
+  indicatorElement().classList.add(isMatch ? 'match' : 'no-match');
+}
+
+function resetAndShowIndicator() {
+  const indicator = indicatorElement();
+  indicator.classList.remove('match');
+  indicator.classList.remove('no-match');
+  indicator.classList.remove('hide');
+  indicator.querySelector('.text').textContent = '';
+}
+
+function hideIndicator() {
+  indicatorElement().classList.add('hide');
+}
+
+if (window.webkitSpeechRecognition) {
+  const recognition = new window.webkitSpeechRecognition;
+  const commands = {
+    'go on': nextSlide,
+    'down': nextSlide,
+    'go down': nextSlide,
+    'go forward': nextSlide,
+    'forward': nextSlide,
+    'next': nextSlide,
+    'next page': nextSlide,
+    'up': prevSlide,
+    'go up': prevSlide,
+    'go back': prevSlide,
+    'back': prevSlide,
+    'previous': prevSlide,
+    'previous page': prevSlide
+  }
+  const command_list = Object.keys(commands);
+
+  const grammar = '#JSGF V1.0; grammar commands; public <command> = ' +
+      command_list.join(' | ');
+  const grammar_list = new webkitSpeechGrammarList();
+  grammar_list.addFromString(grammar, 1);
+
+  recognition.lang = 'en';
+  recognition.grammars = grammar_list;
+  recognition.interimResults = true;
+
+  const on_command = function(command) {
+      if (command) commands[command]();
+      showMatch(!!command);
+    };
+  const command_recognizer = new CommandRecognizer(
+      recognition, command_list, on_command, showRecognizedText);
+
+  recognition.addEventListener('soundstart', resetAndShowIndicator);
+  recognition.addEventListener('soundend', hideIndicator);
+
+  recognition.start();
 }
 </script>
