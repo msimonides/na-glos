@@ -86,6 +86,59 @@ html, body {
   75% { transform: scale(0.95); }
   100% { transform: scale(1); }
 }
+
+#show-help {
+  position: fixed;
+  width: 1.5em;
+  height: 1.5em;
+  line-height: 1.5em;
+  text-align: center;
+  bottom: 1em;
+  right: 1em;
+  padding: 0.5em;
+  border-radius: 50%;
+  background-color: #fff;
+  box-shadow: 0 2px 10px 1px rgba(0, 0, 0, 0.5);
+  font-weight: bold;
+  font-family: sans-serif;
+  text-decoration: none;
+  text-color: #000;
+}
+
+#help {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+#help.hide {
+  display: none;
+}
+
+#help .content {
+  position: relative;
+  background-color: #fff;
+  border-radius: 1em;
+  padding: 1.5em 2em;
+  margin: 3em auto;
+  width: 70%;
+  box-shadow: 0 2px 20px 2px rgba(0, 0, 0, 0.7);
+  font-size: 110%;
+  font-family: sans-serif;
+}
+
+#help .close-help {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.7em 1em;
+  text-decoration: none;
+  color: black;
+  font-size: 120%;
+}
 </style>
 
 <script>
@@ -110,6 +163,20 @@ function prevSlide() {
 function scrollToElement(element) {
   slimScroller.scroll(element);
 }
+
+function updateHelpText(language, command_list) {
+  document.querySelector('#help .lang').textContent = language;
+  document.querySelector('#help .commands').innerHTML =
+      command_list.join('<br>\n');
+}
+
+function showHelp(show) {
+  const helpElement = document.getElementById('help');
+  if (show)
+    helpElement.classList.remove('hide');
+  else
+    helpElement.classList.add('hide');
+}
 </script>
 <script src="slimScroller.full.min.js"></script>
 </head>
@@ -129,6 +196,17 @@ function scrollToElement(element) {
   <div id="speech-recognition-indicator" class="hide">
     <span class="mic">&#x1f3a4;</span>
     <span class="text"></span>
+  </div>
+</div>
+<a id="show-help" href="#">?</a>
+<div id="help" class="hide">
+  <div class="content">
+    <a href="#" class="close-help">&#10006;</a>
+    <p>Attach a microphone to your computer, open this page in the Chrome browser
+    and allow microphone access when prompted.</p>
+    <p>Current language: <span class="lang"><span></p>
+    <p>Commands:</p>
+    <p class="commands"></p>
   </div>
 </div>
 </body>
@@ -211,7 +289,6 @@ function hideIndicator() {
 if (window.webkitSpeechRecognition) {
   const recognition = new window.webkitSpeechRecognition;
   const commands = {
-    'go on': nextSlide,
     'down': nextSlide,
     'go down': nextSlide,
     'go forward': nextSlide,
@@ -223,6 +300,7 @@ if (window.webkitSpeechRecognition) {
     'go up': prevSlide,
     'go back': prevSlide,
     'back': prevSlide,
+    'backward': prevSlide,
     'previous': prevSlide,
     'previous page': prevSlide
   }
@@ -233,7 +311,7 @@ if (window.webkitSpeechRecognition) {
   const grammar_list = new webkitSpeechGrammarList();
   grammar_list.addFromString(grammar, 1);
 
-  recognition.lang = 'en';
+  recognition.lang = 'en-US';
   recognition.grammars = grammar_list;
   recognition.interimResults = true;
 
@@ -248,5 +326,13 @@ if (window.webkitSpeechRecognition) {
   recognition.addEventListener('soundend', hideIndicator);
 
   recognition.start();
+
+  showHelp(true);
+  updateHelpText(recognition.lang, command_list);
+  document.querySelector('#help .close-help').addEventListener(
+      'click', function() { showHelp(false); });
+  document.querySelector('#show-help').addEventListener(
+      'click', function() { showHelp(true) });
 }
+
 </script>
