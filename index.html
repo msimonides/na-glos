@@ -165,7 +165,8 @@ function scrollToElement(element) {
 }
 
 function updateHelpText(language, command_list) {
-  document.querySelector('#help .lang').textContent = language;
+  const langSelect = document.querySelector('#help .lang');
+  langSelect.textContent = language;
   document.querySelector('#help .commands').innerHTML =
       command_list.join('<br>\n');
 }
@@ -204,7 +205,8 @@ function showHelp(show) {
     <a href="#" class="close-help">&#10006;</a>
     <p>Attach a microphone to your computer, open this page in the Chrome browser
     and allow microphone access when prompted.</p>
-    <p>Current language: <span class="lang"><span></p>
+    <p>Current language: <span class="lang"></span>
+    </select></p>
     <p>Commands:</p>
     <p class="commands"></p>
   </div>
@@ -289,30 +291,19 @@ function hideIndicator() {
 if (window.webkitSpeechRecognition) {
   const recognition = new window.webkitSpeechRecognition;
   const commands = {
-    'down': nextSlide,
-    'go down': nextSlide,
-    'go forward': nextSlide,
-    'forward': nextSlide,
-    'next': nextSlide,
-    'next page': nextSlide,
-    'next-page': nextSlide,
-    'up': prevSlide,
-    'go up': prevSlide,
-    'go back': prevSlide,
-    'back': prevSlide,
-    'backward': prevSlide,
-    'previous': prevSlide,
-    'previous page': prevSlide
+    'dalej': nextSlide,
+    'następna': nextSlide,
+    'następna strona': nextSlide,
+    'w dół': nextSlide,
+    'cofnij': prevSlide,
+    'poprzednia': prevSlide,
+    'poprzednia strona': prevSlide,
+    'w górę': prevSlide,
+    'wstecz': prevSlide
   }
   const command_list = Object.keys(commands);
 
-  const grammar = '#JSGF V1.0; grammar commands; public <command> = ' +
-      command_list.join(' | ');
-  const grammar_list = new webkitSpeechGrammarList();
-  grammar_list.addFromString(grammar, 1);
-
-  recognition.lang = 'en-US';
-  recognition.grammars = grammar_list;
+  recognition.lang = 'pl';
   recognition.interimResults = true;
 
   const on_command = function(command) {
